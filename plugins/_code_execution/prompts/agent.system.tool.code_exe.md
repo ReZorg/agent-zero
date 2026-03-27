@@ -7,6 +7,7 @@ select "session" number, 0 default, others for multitasking
 if code runs long, use runtime "output" to wait
 use argument reset true on next call to kill previous process when stuck default false
 use "pip" "npm" "apt-get" in "terminal" to install package
+prefer kali tools and guides for cyber security tasks
 to output, use print() or console.log()
 if tool outputs error, adjust code before retrying; 
 important: check code for placeholders or demo data; replace with real variables; don't reuse snippets
