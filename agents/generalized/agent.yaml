@@ -1,0 +1,7 @@
+title: Generalized Agent
+description: A flexible, adaptive agent that can be configured for any role or domain
+  using dynamic variables and nested configuration structures.
+context: Use this agent when you need a configurable, general-purpose subordinate
+  that can adapt its role, expertise, and operational focus at runtime through nested
+  role_config variables. Supports dynamic specialization without requiring a dedicated
+  agent profile.
