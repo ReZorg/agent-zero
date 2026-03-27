@@ -1,0 +1,5 @@
+title: System Administrator
+description: Agent specialized in system administration, networking, and Linux operations.
+context: Use this agent for sysadmin tasks including Linux system management, network
+  configuration, server hardening, scripting, package management, user administration,
+  and troubleshooting infrastructure issues.
