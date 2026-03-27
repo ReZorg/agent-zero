@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # install playwright here to respect the playwright version from requirements.txt
 bash /ins/install_playwright.sh "$@"
