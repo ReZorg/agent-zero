@@ -13,6 +13,10 @@ import mimetypes
 from simpleeval import simple_eval
 from helpers import yaml
 
+# Pre-compiled pattern for expression-based placeholder evaluation.
+# Matches {{...}} blocks that were not consumed by earlier processing steps.
+_EXPR_PLACEHOLDER_RE = re.compile(r"\{\{([^{}]+)\}\}")
+
 AGENTS_DIR = "agents"
 PLUGINS_DIR = "plugins"
 PROJECTS_DIR = "projects"
@@ -282,11 +286,34 @@ def is_probably_binary_file(
 
 
 def replace_placeholders_text(_content: str, **kwargs):
-    # Replace placeholders with values from kwargs
+    # First pass: exact-key replacement for all simple {{key}} placeholders.
+    # This preserves backward compatibility and is O(n) for the common case.
     for key, value in kwargs.items():
         placeholder = "{{" + key + "}}"
         strval = str(value)
         _content = _content.replace(placeholder, strval)
+
+    # Second pass: evaluate any remaining {{expr}} placeholders as Python
+    # expressions via simple_eval.  This enables patterns such as
+    #   {{role_config["identity"]["title"]}}
+    #   {{role_config["capabilities"]}}
+    # Placeholders handled by other steps ({{ include … }}, {{if … }})
+    # will simply fail evaluation and be left untouched.
+
+    def _eval_expr(match: re.Match) -> str:  # type: ignore[type-arg]
+        expr = match.group(1).strip()
+        try:
+            result = simple_eval(expr, names=kwargs)
+            # Preserve the placeholder when the expression returns None so
+            # callers can distinguish an intentionally absent value from one
+            # that was never populated.
+            if result is None:
+                return match.group(0)
+            return str(result)
+        except Exception:
+            return match.group(0)
+
+    _content = re.sub(_EXPR_PLACEHOLDER_RE, _eval_expr, _content)
     return _content
 
 
