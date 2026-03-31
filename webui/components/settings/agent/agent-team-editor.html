@@ -1,0 +1,241 @@
+<html>
+  <head>
+    <title>Team Members</title>
+    <script type="module">
+      import { store } from "/components/settings/agent/agent-team-editor-store.js";
+    </script>
+  </head>
+
+  <body>
+    <div x-data>
+      <template x-if="$store.agentTeamEditor">
+        <div
+          x-init="$store.agentTeamEditor.onOpen($store.settings?.settings?.agent_profile)"
+          x-destroy="$store.agentTeamEditor.onClose()"
+        >
+          <div class="section-title">Team Members</div>
+          <div class="section-description">
+            Configure the agents that make up the selected default agent profile's team.
+            Each member is a subordinate agent identified by its profile name.
+            When the selected profile is used as the default agent, these team members
+            will be available as pre-configured candidates for the
+            <code>call_subordinate</code> tool. Add or remove members here, then click
+            <strong>Save Team</strong> to persist the configuration.
+          </div>
+
+          <!-- Loading indicator -->
+          <div x-show="$store.agentTeamEditor.loading" class="team-loading">
+            <span class="material-symbols-outlined spinning">progress_activity</span>
+            Loading…
+          </div>
+
+          <!-- Error -->
+          <div x-show="$store.agentTeamEditor.error" class="team-error">
+            <span x-text="$store.agentTeamEditor.error"></span>
+          </div>
+
+          <!-- Success -->
+          <div x-show="$store.agentTeamEditor.successMessage" class="team-success">
+            <span x-text="$store.agentTeamEditor.successMessage"></span>
+          </div>
+
+          <template x-if="!$store.agentTeamEditor.loading">
+            <div>
+              <!-- Member rows -->
+              <template x-if="$store.agentTeamEditor.members.length > 0">
+                <div class="team-members">
+                  <template
+                    x-for="(member, idx) in $store.agentTeamEditor.members"
+                    :key="idx"
+                  >
+                    <div class="team-member-row">
+                      <!-- Profile selector -->
+                      <label class="team-member-field">
+                        <span class="team-member-label">Profile</span>
+                        <select x-model="member.profile" class="team-member-select">
+                          <option value="">— select profile —</option>
+                          <template
+                            x-for="opt in $store.agentTeamEditor.availableProfiles"
+                            :key="opt.key"
+                          >
+                            <option :value="opt.key" x-text="opt.label"></option>
+                          </template>
+                        </select>
+                      </label>
+
+                      <!-- Display name -->
+                      <label class="team-member-field team-member-field-name">
+                        <span class="team-member-label">Name</span>
+                        <input
+                          type="text"
+                          x-model="member.name"
+                          placeholder="Optional display name"
+                          class="team-member-input"
+                        />
+                      </label>
+
+                      <!-- Description -->
+                      <label class="team-member-field team-member-field-desc">
+                        <span class="team-member-label">Role description</span>
+                        <input
+                          type="text"
+                          x-model="member.description"
+                          placeholder="Briefly describe this member's role"
+                          class="team-member-input"
+                        />
+                      </label>
+
+                      <!-- Remove button -->
+                      <button
+                        type="button"
+                        class="button cancel icon-button team-member-remove"
+                        title="Remove member"
+                        @click="$store.agentTeamEditor.removeMember(idx)"
+                      >
+                        <span class="icon material-symbols-outlined">delete</span>
+                      </button>
+                    </div>
+                  </template>
+                </div>
+              </template>
+
+              <template x-if="$store.agentTeamEditor.members.length === 0">
+                <div class="team-empty">
+                  No team members defined. Add members below.
+                </div>
+              </template>
+
+              <!-- Action buttons -->
+              <div class="team-actions">
+                <button
+                  type="button"
+                  class="button"
+                  @click="$store.agentTeamEditor.addMember()"
+                >
+                  <span class="icon material-symbols-outlined">add</span>
+                  Add Member
+                </button>
+                <button
+                  type="button"
+                  class="button confirm"
+                  @click="$store.agentTeamEditor.saveTeamAgents()"
+                  :disabled="$store.agentTeamEditor.saving"
+                >
+                  <span
+                    class="icon material-symbols-outlined"
+                    :class="{ spinning: $store.agentTeamEditor.saving }"
+                    x-text="$store.agentTeamEditor.saving ? 'progress_activity' : 'save'"
+                  ></span>
+                  Save Team
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <style>
+      .team-loading {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--color-text-secondary);
+        padding: 0.5rem 0;
+      }
+
+      .team-error {
+        color: var(--color-error, #e74c3c);
+        background: var(--color-error-bg, #fdecea);
+        border-radius: 4px;
+        padding: 0.5rem 0.75rem;
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+      }
+
+      .team-success {
+        color: var(--color-success, #27ae60);
+        background: var(--color-success-bg, #eafaf1);
+        border-radius: 4px;
+        padding: 0.5rem 0.75rem;
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+      }
+
+      .team-members {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+
+      .team-member-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 0.5rem 0.75rem;
+        background: var(--color-bg-secondary);
+      }
+
+      .team-member-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        flex: 1 1 10rem;
+        min-width: 8rem;
+      }
+
+      .team-member-field-name {
+        flex: 1 1 8rem;
+      }
+
+      .team-member-field-desc {
+        flex: 2 1 14rem;
+      }
+
+      .team-member-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--color-text-secondary);
+      }
+
+      .team-member-select,
+      .team-member-input {
+        width: 100%;
+      }
+
+      .team-member-remove {
+        flex: 0 0 auto;
+        align-self: flex-end;
+      }
+
+      .team-empty {
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        border: 1px dashed var(--color-border);
+        border-radius: 4px;
+        text-align: center;
+        color: var(--color-text-secondary);
+      }
+
+      .team-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .spinning {
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </body>
+</html>

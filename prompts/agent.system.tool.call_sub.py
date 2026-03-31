@@ -23,12 +23,22 @@ class CallSubordinate(VariablesPlugin):
         if agents:
             profiles = {}
             for name, subagent in agents.items():
-                profiles[name] = {
+                profile_entry: dict[str, Any] = {
                     "title": subagent.title,
                     "description": subagent.description,
                     "context": subagent.context,
                 }
+                if subagent.team_agents:
+                    profile_entry["team_agents"] = [
+                        {
+                            "profile": m.profile,
+                            "name": m.name or m.profile,
+                            "description": m.description,
+                        }
+                        for m in subagent.team_agents
+                    ]
+                profiles[name] = profile_entry
             return {"agent_profiles": profiles}
         else:
             return {"agent_profiles": None}
-        
+

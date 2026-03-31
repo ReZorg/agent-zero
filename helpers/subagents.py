@@ -20,6 +20,14 @@ if TYPE_CHECKING:
     from agent import Agent
 
 
+class TeamAgent(BaseModel):
+    """A single member of a team defined within an agent profile."""
+
+    profile: str = ""
+    name: str = ""
+    description: str = ""
+
+
 class SubAgentListItem(BaseModel):
     name: str = ""
     title: str = ""
@@ -28,6 +36,7 @@ class SubAgentListItem(BaseModel):
     path: str = ""
     origin: list[Origin] = []
     enabled: bool = True
+    team_agents: list[TeamAgent] = []
 
     @model_validator(mode="after")
     def post_validator(self):
@@ -158,12 +167,14 @@ def load_agent_data(name: str, project_name: str | None = None) -> SubAgent:
 def save_agent_data(name: str, subagent: SubAgent) -> None:
     # write agent.json in custom directory
     agent_dir = f"{USER_AGENTS_DIR}/{name}"
-    agent_json = {
+    agent_json: dict = {
         "title": subagent.title,
         "description": subagent.description,
         "context": subagent.context,
         "enabled": subagent.enabled,
     }
+    if subagent.team_agents:
+        agent_json["team_agents"] = [m.model_dump() for m in subagent.team_agents]
     files.write_file(f"{agent_dir}/agent.json", json.dumps(agent_json, indent=2))
 
     # replace prompts in custom directory
@@ -238,6 +249,7 @@ def _merge_agents(base: SubAgent | None, override: SubAgent | None) -> SubAgent 
         context=override.context,
         origin=_merge_origins(base.origin, override.origin),
         prompts=merged_prompts,
+        team_agents=override.team_agents if override.team_agents else base.team_agents,
     )
 
 
@@ -251,6 +263,7 @@ def _merge_agent_list_items(
         context=override.context or base.context,
         path=override.path or base.path,
         origin=_merge_origins(base.origin, override.origin),
+        team_agents=override.team_agents if override.team_agents else base.team_agents,
     )
 
 
