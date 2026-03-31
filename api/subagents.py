@@ -36,12 +36,12 @@ class Subagents(ApiHandler):
             }
 
     def get_subagents_list(self):
-        return subagents.get_agents_list()
+        return [a.model_dump(mode="json") for a in subagents.get_agents_list()]
 
     def load_agent(self, name: str|None):
         if name is None:
             raise Exception("Subagent name is required")
-        return subagents.load_agent_data(name)
+        return subagents.load_agent_data(name).model_dump(mode="json")
 
     def save_agent(self, name:str|None, data: dict|None):
         if name is None:
@@ -50,7 +50,7 @@ class Subagents(ApiHandler):
             raise Exception("Subagent data is required")
         subagent = subagents.SubAgent(**data)
         subagents.save_agent_data(name, subagent)
-        return subagents.load_agent_data(name)
+        return subagents.load_agent_data(name).model_dump(mode="json")
 
     def delete_agent(self, name: str|None):
         if name is None:

@@ -5,6 +5,8 @@ Tests for the team agent feature:
 - save / load round-trip for team_agents
 - agents/team/ profile files exist and contain required content
 - call_sub variables include team_agents when present
+- enabled field is preserved during merge
+- model_dump serialization produces JSON-safe output (API layer)
 """
 
 from __future__ import annotations
@@ -345,3 +347,115 @@ def test_call_sub_variables_include_team_agents_for_team_profile():
     assert "team_agents" in content, "call_sub.py must reference team_agents"
     # Confirm the team_agents are added to the profile entry when present
     assert "profile_entry[\"team_agents\"]" in content or "team_agents" in content
+
+
+# ---------------------------------------------------------------------------
+# enabled field preserved during merge
+# ---------------------------------------------------------------------------
+
+
+def test_merge_agent_list_items_preserves_enabled_false():
+    """_merge_agent_list_items must honour enabled=False from the override."""
+    base = SubAgentListItem(name="base", enabled=True)
+    override = SubAgentListItem(name="override", enabled=False)
+    merged = _merge_agent_list_items(base, override)
+    assert merged.enabled is False
+
+
+def test_merge_agent_list_items_preserves_enabled_true():
+    """_merge_agent_list_items must honour enabled=True from the override."""
+    base = SubAgentListItem(name="base", enabled=False)
+    override = SubAgentListItem(name="override", enabled=True)
+    merged = _merge_agent_list_items(base, override)
+    assert merged.enabled is True
+
+
+def test_merge_agents_preserves_enabled_false():
+    """_merge_agents must honour enabled=False from the override."""
+    base = SubAgent(name="base", title="Base", enabled=True)
+    override = SubAgent(name="override", title="Override", enabled=False)
+    merged = _merge_agents(base, override)
+    assert merged is not None
+    assert merged.enabled is False
+
+
+def test_merge_agents_preserves_enabled_true():
+    """_merge_agents must honour enabled=True from the override."""
+    base = SubAgent(name="base", title="Base", enabled=False)
+    override = SubAgent(name="override", title="Override", enabled=True)
+    merged = _merge_agents(base, override)
+    assert merged is not None
+    assert merged.enabled is True
+
+
+# ---------------------------------------------------------------------------
+# SubAgentListItem / SubAgent JSON serialization (API layer)
+# ---------------------------------------------------------------------------
+
+
+def test_sub_agent_list_item_model_dump_is_json_serializable():
+    """model_dump(mode='json') on SubAgentListItem must produce a JSON-safe dict."""
+    item = SubAgentListItem(
+        name="team",
+        title="Team",
+        team_agents=[TeamAgent(profile="developer", name="Dev")],
+    )
+    dumped = item.model_dump(mode="json")
+    # Must be roundtrippable via json.dumps / json.loads
+    serialized = json.dumps(dumped)
+    restored = json.loads(serialized)
+    assert restored["name"] == "team"
+    assert restored["title"] == "Team"
+    assert len(restored["team_agents"]) == 1
+    assert restored["team_agents"][0]["profile"] == "developer"
+
+
+def test_sub_agent_model_dump_is_json_serializable():
+    """model_dump(mode='json') on SubAgent must include team_agents."""
+    agent = SubAgent(
+        name="myteam",
+        title="My Team",
+        team_agents=[
+            TeamAgent(profile="researcher", name="Res", description="Researches"),
+        ],
+    )
+    dumped = agent.model_dump(mode="json")
+    serialized = json.dumps(dumped)
+    restored = json.loads(serialized)
+    assert restored["name"] == "myteam"
+    assert len(restored["team_agents"]) == 1
+    assert restored["team_agents"][0]["profile"] == "researcher"
+
+
+def test_subagents_api_list_returns_serializable_dicts():
+    """api/subagents.py get_subagents_list must return plain dicts, not Pydantic models."""
+    # Simulate what the API does: model_dump(mode="json") on each item
+    items = [
+        SubAgentListItem(name="developer", title="Developer"),
+        SubAgentListItem(
+            name="team",
+            title="Team",
+            team_agents=[TeamAgent(profile="developer")],
+        ),
+    ]
+    result = [a.model_dump(mode="json") for a in items]
+    # Should be JSON-serializable without raising TypeError
+    raw = json.dumps({"ok": True, "data": result})
+    parsed = json.loads(raw)
+    assert parsed["ok"] is True
+    assert len(parsed["data"]) == 2
+    assert parsed["data"][1]["team_agents"][0]["profile"] == "developer"
+
+
+def test_subagents_api_load_returns_serializable_dict():
+    """api/subagents.py load_agent must return a plain dict, not a Pydantic model."""
+    agent = SubAgent(
+        name="team",
+        title="Team",
+        team_agents=[TeamAgent(profile="developer", name="Dev")],
+    )
+    result = agent.model_dump(mode="json")
+    raw = json.dumps({"ok": True, "data": result})
+    parsed = json.loads(raw)
+    assert parsed["data"]["name"] == "team"
+    assert parsed["data"]["team_agents"][0]["name"] == "Dev"
