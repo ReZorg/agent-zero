@@ -1,0 +1,16 @@
+title: Team
+description: A configurable team of specialized agents coordinated by a single orchestrator.
+context: Use this profile to define a named team of agents. The team is composed of
+  member agents, each with a specific profile and role. The orchestrator delegates
+  subtasks to team members using the call_subordinate tool. Configure team_agents
+  to specify which agent profiles form the team and their individual roles.
+team_agents:
+  - profile: developer
+    name: Developer
+    description: Implements features, writes and reviews code, and performs debugging.
+  - profile: researcher
+    name: Researcher
+    description: Gathers information, analyzes requirements, and produces research summaries.
+  - profile: project-manager
+    name: Project Manager
+    description: Coordinates tasks, tracks progress, and ensures delivery on time.
