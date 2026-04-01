@@ -247,6 +247,7 @@ def _merge_agents(base: SubAgent | None, override: SubAgent | None) -> SubAgent 
         title=override.title,
         description=override.description,
         context=override.context,
+        enabled=override.enabled,
         origin=_merge_origins(base.origin, override.origin),
         prompts=merged_prompts,
         team_agents=override.team_agents if override.team_agents else base.team_agents,
@@ -263,6 +264,7 @@ def _merge_agent_list_items(
         context=override.context or base.context,
         path=override.path or base.path,
         origin=_merge_origins(base.origin, override.origin),
+        enabled=override.enabled,
         team_agents=override.team_agents if override.team_agents else base.team_agents,
     )
 
