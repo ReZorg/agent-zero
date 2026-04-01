@@ -1,16 +1,21 @@
-import sys, os
+import asyncio
+import os
+import sys
+
+import pytest
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import asyncio
-import pytest
-from helpers.email_client import read_messages
 from helpers.dotenv import get_dotenv_value, load_dotenv
 
 
-@pytest.mark.skip(reason="This test is disabled as it has eternal dependencies and tests nothing automatically, please move it to a script or a manual test")
+@pytest.mark.skip(
+    reason="Manual integration test requiring a live email account and a supported email helper implementation."
+)
 @pytest.mark.asyncio
-async def test():
+async def test_manual_email_parser():
+    from helpers.email_client import read_messages
+
     load_dotenv()
     messages = await read_messages(
         account_type=get_dotenv_value("TEST_SERVER_TYPE", "imap"),
@@ -23,4 +28,4 @@ async def test():
 
 
 if __name__ == "__main__":
-    asyncio.run(test())
+    asyncio.run(test_manual_email_parser())
