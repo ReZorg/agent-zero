@@ -1,8 +1,12 @@
 """Tests for helpers/dirty_json.py – the lenient JSON parser."""
-import sys
-import os
+from __future__ import annotations
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import pytest
 from helpers.dirty_json import DirtyJson, parse, stringify, try_parse

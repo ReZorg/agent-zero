@@ -1,9 +1,13 @@
 """Tests for helpers/errors.py – format_error, custom exception classes, etc."""
-import sys
-import os
-import asyncio
+from __future__ import annotations
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import asyncio
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import pytest
 from helpers.errors import (

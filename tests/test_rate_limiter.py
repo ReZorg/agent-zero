@@ -1,10 +1,14 @@
 """Tests for helpers/rate_limiter.py – the async RateLimiter class."""
-import sys
-import os
-import asyncio
-import time
+from __future__ import annotations
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import asyncio
+import sys
+import time
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import pytest
 from helpers.rate_limiter import RateLimiter
