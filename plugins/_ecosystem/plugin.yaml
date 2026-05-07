@@ -1,0 +1,5 @@
+name: _ecosystem
+title: Ecosystem Hub
+description: Browse and access the Agent Zero ecosystem — official repos, integrations, tools, and templates from agent0ai.
+version: "1.0"
+always_enabled: true
