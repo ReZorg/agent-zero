@@ -388,6 +388,7 @@ class Agent:
                     self.context.streaming_agent = self  # mark self as current streamer
                     self.loop_data.iteration += 1
                     self.loop_data.params_temporary = {}  # clear temporary params
+                    last_response_stream_full = ""
 
                     # call message_loop_start extensions
                     await extension.call_extensions_async(
@@ -425,12 +426,32 @@ class Agent:
                             await self.handle_reasoning_stream(stream_data["full"])
 
                         async def stream_callback(chunk: str, full: str):
+                            nonlocal last_response_stream_full
                             await self.handle_intervention()
                             # output the agent response stream
                             if chunk == full:
                                 printer.print("Response: ")  # start of response
                             # Pass chunk and full data to extensions for processing
                             stream_data = {"chunk": chunk, "full": full}
+                            stop_response: str | None = None
+
+                            snapshot = extract_tools.extract_json_root_string(full)
+                            if snapshot:
+                                parsed_snapshot = extract_tools.json_parse_dirty(snapshot)
+                                if parsed_snapshot is not None:
+                                    try:
+                                        await self.validate_tool_request(parsed_snapshot)
+                                    except Exception:
+                                        pass
+                                    else:
+                                        previous_full = last_response_stream_full
+                                        stream_data["full"] = snapshot
+                                        if snapshot.startswith(previous_full):
+                                            stream_data["chunk"] = snapshot[len(previous_full) :]
+                                        else:
+                                            stream_data["chunk"] = snapshot
+                                        stop_response = snapshot
+
                             await extension.call_extensions_async(
                                 "response_stream_chunk",
                                 self,
@@ -442,6 +463,9 @@ class Agent:
                                 printer.stream(stream_data["chunk"])
                             # Use the potentially modified full text for downstream processing
                             await self.handle_response_stream(stream_data["full"])
+                            last_response_stream_full = stream_data["full"]
+                            if stop_response is not None:
+                                return stop_response
 
                         # call main LLM
                         agent_response, _reasoning = await self.call_chat_model(
@@ -717,10 +741,6 @@ class Agent:
         return None
 
     @extension.extensible
-    def get_browser_model(self):
-        return None
-
-    @extension.extensible
     def get_embedding_model(self):
         return None
 
@@ -770,7 +790,7 @@ class Agent:
     async def call_chat_model(
         self,
         messages: list[BaseMessage],
-        response_callback: Callable[[str, str], Awaitable[None]] | None = None,
+        response_callback: Callable[[str, str], Awaitable[str | None]] | None = None,
         reasoning_callback: Callable[[str, str], Awaitable[None]] | None = None,
         background: bool = False,
         explicit_caching: bool = True,
@@ -848,13 +868,20 @@ class Agent:
         # search for tool usage requests in agent message
         tool_request = extract_tools.json_parse_dirty(msg)
 
-        # basic validation + extensions
-        await self.validate_tool_request(tool_request)
+        raw_tool_name = ""
+        tool_args = {}
+
+        # Only validate when extraction produced an object; None means no JSON tool
+        # block was found - the misformat warning path below handles that.
+        if tool_request is not None:
+            try:
+                raw_tool_name, tool_args = extract_tools.normalize_tool_request(
+                    tool_request
+                )
+            except ValueError:
+                tool_request = None  # treat structural validation errors as misformat
 
         if tool_request is not None:
-            raw_tool_name = tool_request.get("tool_name", tool_request.get("tool",""))  # Get the raw tool name
-            tool_args = tool_request.get("tool_args", tool_request.get("args", {}))
-
             tool_name = raw_tool_name  # Initialize tool_name with raw_tool_name
             tool_method = None  # Initialize tool_method
 
@@ -948,12 +975,7 @@ class Agent:
 
     @extension.extensible
     async def validate_tool_request(self, tool_request: Any):
-        if not isinstance(tool_request, dict):
-            raise ValueError("Tool request must be a dictionary")
-        if not tool_request.get("tool_name") or not isinstance(tool_request.get("tool_name"), str):
-            raise ValueError("Tool request must have a tool_name (type string) field")
-        if not tool_request.get("tool_args") or not isinstance(tool_request.get("tool_args"), dict):
-            raise ValueError("Tool request must have a tool_args (type dictionary) field")
+        extract_tools.normalize_tool_request(tool_request)
 
 
 

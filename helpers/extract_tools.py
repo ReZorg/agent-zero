@@ -20,6 +20,45 @@ def json_parse_dirty(json: str) -> dict[str, Any] | None:
     return None
 
 
+def normalize_tool_request(tool_request: Any) -> tuple[str, dict]:
+    if not isinstance(tool_request, dict):
+        raise ValueError("Tool request must be a dictionary")
+    tool_name = tool_request.get("tool_name")
+    if not tool_name or not isinstance(tool_name, str):
+        tool_name = tool_request.get("tool")
+    if not tool_name or not isinstance(tool_name, str):
+        raise ValueError("Tool request must have a tool_name (type string) field")
+    tool_args = tool_request.get("tool_args")
+    if not isinstance(tool_args, dict):
+        tool_args = tool_request.get("args")
+    if not isinstance(tool_args, dict):
+        raise ValueError("Tool request must have a tool_args (type dictionary) field")
+    return tool_name, tool_args
+
+
+def extract_json_root_string(content: str) -> str | None:
+    if not content or not isinstance(content, str):
+        return None
+
+    start = content.find("{")
+    if start == -1:
+        return None
+    first_array = content.find("[")
+    if first_array != -1 and first_array < start:
+        return None
+
+    parser = DirtyJson()
+    try:
+        parser.parse(content[start:])
+    except Exception:
+        return None
+
+    if not parser.completed:
+        return None
+
+    return content[start : start + parser.index]
+
+
 def extract_json_object_string(content):
     start = content.find("{")
     if start == -1:
@@ -59,5 +98,3 @@ def fix_json_string(json_string):
         r'(?<=: ")(.*?)(?=")', replace_unescaped_newlines, json_string, flags=re.DOTALL
     )
     return fixed_string
-
-
