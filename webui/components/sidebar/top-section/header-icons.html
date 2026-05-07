@@ -93,9 +93,9 @@
           <span>Remote Link</span>
         </button>
 
-        <button class="dropdown-item" @click="open('https://space-agent.ai/', '_blank', 'noopener,noreferrer'); $store.sidebar.menuClose()">
-          <span class="material-symbols-outlined">rocket_launch</span>
-          <span>Space Agent</span>
+        <button class="dropdown-item" @click="openModal('/plugins/_ecosystem/webui/main.html'); $store.sidebar.menuClose()">
+          <span class="material-symbols-outlined">hub</span>
+          <span>Ecosystem</span>
         </button>
 
         <button class="dropdown-item" @click="openModal('components/modals/scheduler/scheduler-modal.html'); $store.sidebar.menuClose()">
