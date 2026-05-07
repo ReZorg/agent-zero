@@ -202,13 +202,13 @@ def clear_plugin_cache(plugin_names: list[str] | None = None):
     for area in areas:
         cache.clear(area)
 
-    from helpers.websocket_manager import send_data
+    from helpers.ws_manager import send_data
 
     DeferredTask().start_task(
         send_data,
-        endpoint_name="/webui",
-        event_name="clear_cache",
-        data={"areas": areas},
+        "clear_cache",
+        {"areas": areas},
+        endpoint_name="/ws",
     )
 
 
@@ -607,9 +607,10 @@ def get_plugin_config(
 
     # use default config if not found
     if not file_path:
-        file_path = files.get_abs_path(
-            find_plugin_dir(plugin_name), CONFIG_DEFAULT_FILE_NAME
-        )
+        plugin_dir = find_plugin_dir(plugin_name)
+        if not plugin_dir:
+            return None
+        file_path = files.get_abs_path(plugin_dir, CONFIG_DEFAULT_FILE_NAME)
         default_used = True
 
     result = None
@@ -635,9 +636,11 @@ def get_plugin_config(
 
 
 def get_default_plugin_config(plugin_name: str):
-    file_path = files.get_abs_path(
-        find_plugin_dir(plugin_name), CONFIG_DEFAULT_FILE_NAME
-    )
+    plugin_dir = find_plugin_dir(plugin_name)
+    if not plugin_dir:
+        return None
+
+    file_path = files.get_abs_path(plugin_dir, CONFIG_DEFAULT_FILE_NAME)
 
     # call plugin hook to get the result
     result = call_plugin_hook(
@@ -749,13 +752,12 @@ def find_plugin_assets(
             )
             if _collect(path, project_name, agent_profile):
                 return results
-        if not agent_profile or agent_profile == "*":
-            # project/.a0proj/plugins/<plugin_name>/...
-            path = projects.get_project_meta(
-                project_name, files.PLUGINS_DIR, plugin_name, *subpaths
-            )
-            if _collect(path, project_name, ""):
-                return results
+        # project/.a0proj/plugins/<plugin_name>/... (always check as fallback, even when agent_profile is set)
+        path = projects.get_project_meta(
+            project_name, files.PLUGINS_DIR, plugin_name, *subpaths
+        )
+        if _collect(path, project_name, ""):
+            return results
 
     # usr/agents/<profile>/plugins/<plugin_name>/...
     if agent_profile:

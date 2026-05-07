@@ -23,13 +23,62 @@ irm https://ps.agent-zero.ai | iex
 docker run -p 80:80 agent0ai/agent-zero
 ```
 
-Once the install completes, open the URL shown in your terminal to access the Web UI and proceed to [Step 3: Configure Agent Zero](#step-3-configure-agent-zero).
+Once the install completes, open the URL shown in your terminal to access the Web UI. Follow the prompts in the CLI to set your port and authentication, complete onboarding, add your API key, then continue to [Step 3: Configure Agent Zero](#step-3-configure-agent-zero).
+
+> [!TIP]
+> Prefer a terminal-native workflow too? Install the optional [A0 CLI Connector](../guides/a0-cli-connector.md) from GitHub, then run `a0` to connect to this Agent Zero instance from your terminal.
 
 ---
 
-## Manual Docker Setup
+## How to Update Agent Zero
 
-If you prefer to set things up manually, follow the steps below.
+### Self Update (Recommended)
+
+Use the built-in updater in the Web UI:
+
+1. Open **Settings UI → Update** tab
+2. Open **Self Update**
+3. Wait for the update checker to see if you have the latest version or if there's an available update. 
+
+You'll also be prompted through the UI when a new A0 version is released. Backups are automatically managed internally during this process.
+
+For technical details of the updater, see [Self Update](../guides/self-update.md).
+
+### Updating from Pre-v0.9.8
+
+If you are upgrading from an older version of Agent Zero (v0.9.8 or earlier) to v1.1 or newer, the architecture has fundamentally changed. You cannot use the in-app Self Update. Instead, follow these steps to migrate your data:
+
+1. **Backup your existing `usr/` directory** (which contains your settings, projects, memory, and custom plugins).
+2. **Run the new install script** to set up the new Docker-based architecture:
+   - macOS / Linux: `curl -fsSL https://bash.agent-zero.ai | bash`
+   - Windows (PowerShell): `irm https://ps.agent-zero.ai | iex`
+3. **Migrate your data:** After the new installation completes, copy the contents of your backed-up `usr/` directory into the new `/a0/usr/` directory created by the script.
+4. Restart the container for the changes to take effect.
+
+### Manual Update (Advanced)
+
+> Use this only if Self Update is unavailable or you must manage containers yourself (for example, some custom Docker setups).
+
+1. Keep the current container running
+2. `docker pull agent0ai/agent-zero:latest`
+3. Start a **new** container on a different host port, for example: `docker run -d -p 50081:80 --name agent-zero-new agent0ai/agent-zero`
+4. On the **old** instance: **Settings → Backup & Restore → Create Backup**
+5. On the **new** instance: **Restore** the backup
+6. Verify chats and data, then remove the old container
+
+> [!CAUTION]
+> Do not delete the old container until the new one has your data.
+
+> [!TIP]
+> If the new instance fails to load settings, remove `/a0/usr/settings.json` and restart to regenerate default settings.
+
+---
+
+## Manual Installation (Advanced)
+
+> Users should use [Quick Start (Recommended)](#quick-start-recommended) above. The steps below are for custom Docker setups, air-gapped installs, or when you cannot use the install scripts.
+
+Follow the steps below to install Docker and run the image by hand.
 
 ### Step 1: Install Docker Desktop
 
@@ -263,11 +312,13 @@ Agent Zero provides a comprehensive settings interface to customize various aspe
 - **Memory Subdirectory:** Select the subdirectory for agent memory storage, allowing separation between different instances.
 - **Knowledge Subdirectory:** Specify the location of custom knowledge files to enhance the agent's understanding.
 
+See the [Agent Profiles guide](../guides/agent-profiles.md) for profile file locations, `agent.yaml`, prompt overrides, and profile-specific Main/Utility model configuration.
+
 > [!NOTE]
 > Since v0.9.7, custom prompts belong in `/a0/agents/<agent_name>/prompts/` rather than a shared `/prompts` folder. See the [Extensions guide](../developer/extensions.md#prompts) for details.
 
 > [!NOTE]
-> The Hacker profile is included in the main image. After launch, choose the **hacker** agent profile in Settings if you want the security-focused prompts and tooling. The "hacker" branch is deprecated.
+> The Hacker profile is included in the main image. After launch, choose the **hacker** agent profile in Settings to make it the default for new chats, or switch the selected chat from the composer profile selector. The "hacker" branch is deprecated.
 
 ![settings](../res/setup/settings/1-agentConfig.png)
 
@@ -354,7 +405,7 @@ The Settings page is the control center for selecting the Large Language Models 
 
 | LLM Role | Description |
 | --- | --- |
-| `chat_llm` | This is the primary LLM used for conversations, agent reasoning, tool use, and the built-in browser agent. Vision support controls browser vision and image understanding. |
+| `chat_llm` | This is the primary LLM used for conversations, agent reasoning, and tool use. Vision support controls image understanding. |
 | `utility_llm` | This LLM handles internal tasks like summarizing messages, managing memory, and processing internal prompts. Using a smaller, less expensive model here can improve efficiency. |
 | `embedding_llm` | The embedding model shipped with A0 runs on CPU and is responsible for generating embeddings used for memory retrieval and knowledge base lookups. Changing the `embedding_llm` will re-index all of A0's memory. |
 
@@ -365,7 +416,7 @@ The Settings page is the control center for selecting the Large Language Models 
 3. Click "Save" to apply the changes.
 
 > [!NOTE]
-> The Browser Agent does not have a separate model slot. It uses the effective Main Model resolved by `_model_config`, including per-chat overrides and the Main Model vision flag.
+> The built-in browser does not have a separate model slot. The main agent decides when to call the direct `browser` tool.
 
 ### Important Considerations
 
@@ -491,24 +542,6 @@ ollama rm <model-name>
 
 > [!TIP]
 > Experiment with different model combinations to find the balance of performance and cost that best suits your needs. E.g., faster and lower latency LLMs will help, and you can also use `faiss_gpu` instead of `faiss_cpu` for the memory. 
-
----
-
-## How to Update Agent Zero
-
-> [!NOTE]
-> Since v0.9, Agent Zero includes a Backup & Restore workflow in the Settings UI. This is the **safest** way to upgrade Docker instances.
-
-### Recommended Update Process (Docker)
-
-1. **Keep the old container running** and note its port.
-2. **Pull the new image** (`agent0ai/agent-zero:latest`).
-3. **Start a new container** on a different host port.
-4. In the **old** instance, open **Settings → Backup & Restore** and create a backup.
-5. In the **new** instance, restore that backup from the same panel.
-
-> [!TIP]
-> If the new instance fails to load settings, remove `/a0/usr/settings.json` and restart to regenerate default settings.
 
 ---
 

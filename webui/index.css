@@ -137,6 +137,7 @@ html {
 body {
   overscroll-behavior: none;
   -webkit-overscroll-behavior: none;
+  overflow-x: hidden;
 }
 
 x-extension:not(:empty) {
@@ -393,6 +394,8 @@ img {
   display: -webkit-flex;
   display: flex;
   height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .panel {
@@ -408,11 +411,54 @@ img {
 #right-panel {
   display: -webkit-flex;
   display: flex;
-  width: 100%;
+  width: auto;
+  min-width: 0;
   flex-direction: column;
-  flex-grow: 1;
+  flex: 1 1 0;
   -webkit-transition: margin-left var(--transition-speed) ease-in-out;
   transition: margin-left var(--transition-speed) ease-in-out;
+}
+
+/* Chat area wrapper – contains chat-history + floating nav buttons */
+#chat-area-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+}
+
+/* Chat Navigation Buttons – vertical, floating bottom-right of chat area */
+#chat-nav-buttons {
+  position: absolute;
+  right: var(--spacing-md);
+  bottom: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+#chat-area-wrapper:hover #chat-nav-buttons,
+#chat-nav-buttons:hover {
+  opacity: 0.85;
+  pointer-events: auto;
+}
+#chat-nav-buttons .btn-icon-action {
+  padding: var(--spacing-xs);
+  border: none !important;
+  border-radius: 50%;
+  background: var(--color-panel);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+}
+@media (max-width: 768px) {
+  #chat-nav-buttons {
+    opacity: 0.85;
+    pointer-events: auto;
+  }
 }
 
 /* Scrollbar styles for right panel */
@@ -435,7 +481,8 @@ div#right-panel::-webkit-scrollbar-thumb:hover {
 
 #time-date-container {
   z-index: 1000;
-  position: fixed;
+  position: absolute;
+  top: 0;
   right: var(--spacing-md);
   display: flex;
   align-items: center;
@@ -1288,7 +1335,7 @@ a:active {
 .settings-modal-title {
   margin-top: 0;
   margin-bottom: 24px;
-  font-size: 1.8rem;
+  font-size: 0.95rem;
   text-align: center;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 12px;

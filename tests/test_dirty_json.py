@@ -345,3 +345,51 @@ class TestComplex:
     def test_mixed_quotes_in_values(self):
         result = parse("{'key': \"value\"}")
         assert result["key"] == "value"
+
+
+# ---------------------------------------------------------------------------
+# DirtyJson.completed attribute (upstream tests)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        (
+            '{"tool_name":"x","tool_args":{}}',
+            {"tool_name": "x", "tool_args": {}},
+        ),
+        ("[1, 2, 3]", [1, 2, 3]),
+    ],
+)
+def test_completed_true_when_root_is_explicitly_closed(payload, expected) -> None:
+    parser = DirtyJson()
+
+    assert parser.parse(payload) == expected
+    assert parser.completed is True
+
+
+def test_completed_false_when_root_hits_eof_before_closing() -> None:
+    parser = DirtyJson()
+
+    assert parser.parse('{"tool_name":"x","tool_args":{}') == {
+        "tool_name": "x",
+        "tool_args": {},
+    }
+    assert parser.completed is False
+
+
+def test_completed_remains_true_after_trailing_content() -> None:
+    parser = DirtyJson()
+
+    assert parser.feed('{"tool_name":"x","tool_args":{}}') == {
+        "tool_name": "x",
+        "tool_args": {},
+    }
+    assert parser.completed is True
+
+    assert parser.feed(" trailing noise") == {
+        "tool_name": "x",
+        "tool_args": {},
+    }
+
+    assert parser.completed is True
