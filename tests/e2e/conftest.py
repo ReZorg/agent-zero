@@ -159,13 +159,9 @@ def mock_llm_response():
     )
 
     async def _fake_stream(*args, **kwargs):
-        class _Chunk:
-            content = fake_content
-
-        yield _Chunk()
+        return fake_content
 
     with patch("helpers.call_llm.call_llm", side_effect=_fake_stream):
-        yield fake_content
 
 
 # ---------------------------------------------------------------------------
